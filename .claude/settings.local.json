@@ -15,7 +15,13 @@
       "Bash(PGPASSWORD=postgres psql -h localhost -U postgres -d postgres -f \"C:\\\\Projects\\\\torim\\\\packages\\\\backend\\\\supabase\\\\migrations\\\\001_initial.sql\")",
       "Bash(docker exec *)",
       "Bash(pnpm test *)",
-      "Bash(npm test *)"
+      "Bash(npm test *)",
+      "Bash(netstat -ano)",
+      "Bash(findstr :3000)",
+      "Bash(taskkill /PID 10748 /F)",
+      "Bash(curl -s http://localhost:3000/health)",
+      "Bash(npm start *)",
+      "Bash(npx expo *)"
     ]
   }
 }

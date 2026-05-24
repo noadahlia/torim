@@ -1,11 +1,10 @@
-import { createClient } from '@supabase/supabase-js';
-import { config } from '../config/env.js';
+import { supabase } from '../config/supabase.js';
 import { BookingEngine } from './BookingEngine.js';
 import { TrustService } from './TrustService.js';
 import { NotFoundError } from '../utils/errors.js';
 
 export class ReservationService {
-  private supabase = createClient(config.SUPABASE_URL, config.SUPABASE_ANON_KEY);
+  private supabase = supabase;
   private bookingEngine = new BookingEngine();
   private trustService = new TrustService();
 

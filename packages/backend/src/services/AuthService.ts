@@ -1,9 +1,8 @@
-import { createClient } from '@supabase/supabase-js';
-import { config } from '../config/env.js';
+import { supabase } from '../config/supabase.js';
 import { AuthenticationError, ValidationError } from '../utils/errors.js';
 
 export class AuthService {
-  private supabase = createClient(config.SUPABASE_URL, config.SUPABASE_ANON_KEY);
+  private supabase = supabase;
 
   async signup(
     email: string,

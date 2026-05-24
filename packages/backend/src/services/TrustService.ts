@@ -1,8 +1,7 @@
-import { createClient } from '@supabase/supabase-js';
-import { config } from '../config/env.js';
+import { supabase } from '../config/supabase.js';
 
 export class TrustService {
-  private supabase = createClient(config.SUPABASE_URL, config.SUPABASE_ANON_KEY);
+  private supabase = supabase;
 
   /**
    * Initialize trust profile for new client

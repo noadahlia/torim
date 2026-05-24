@@ -3,14 +3,13 @@
  * CRITICAL: Implements atomic, race-condition safe booking
  */
 
-import { createClient } from '@supabase/supabase-js';
-import { config } from '../config/env.js';
+import { supabase } from '../config/supabase.js';
 import { TimeZoneService } from './TimeZoneService.js';
 import { TrustService } from './TrustService.js';
 import { ConflictError, ValidationError, NotFoundError } from '../utils/errors.js';
 
 export class BookingEngine {
-  private supabase = createClient(config.SUPABASE_URL, config.SUPABASE_ANON_KEY);
+  private supabase = supabase;
   private trustService = new TrustService();
 
   /**
