@@ -1,5 +1,5 @@
 {
   "buildCommand": "pnpm --version && cd packages/backend && npm run build",
-  "installCommand": "corepack enable && corepack prepare pnpm@latest --activate && pnpm install --frozen-lockfile",
+  "installCommand": "corepack enable && corepack prepare pnpm@latest --activate && pnpm install",
   "outputDirectory": "packages/backend/dist"
 }
