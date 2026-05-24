@@ -1,3 +1,4 @@
+import './types.js';
 import Fastify from 'fastify';
 import { config } from './config/env.js';
 import { setupRoutes } from './routes/index.js';
