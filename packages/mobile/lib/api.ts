@@ -1,5 +1,4 @@
 import axios from 'axios';
-import { useAuth } from './auth';
 
 const API_URL = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:3000/api/v1';
 
@@ -7,66 +6,78 @@ export const api = axios.create({
   baseURL: API_URL,
 });
 
-// Add token to requests
-api.interceptors.request.use(async (config) => {
-  try {
-    // Token will be added from auth context
-    // This is a placeholder - actual implementation depends on auth setup
-  } catch (error) {
-    console.error('Error adding auth token:', error);
-  }
-  return config;
-});
+let currentToken: string | null = null;
 
-// Handle errors
+export function setAuthToken(token: string | null) {
+  currentToken = token;
+  if (token) {
+    api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+  } else {
+    delete api.defaults.headers.common['Authorization'];
+  }
+}
+
+api.interceptors.request.use(
+  (config) => {
+    if (currentToken) {
+      config.headers.Authorization = `Bearer ${currentToken}`;
+    }
+    return config;
+  },
+  (error) => Promise.reject(error)
+);
+
 api.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response?.status === 401) {
-      // Redirect to login
-      console.error('Unauthorized');
+      currentToken = null;
+      delete api.defaults.headers.common['Authorization'];
     }
     return Promise.reject(error);
   }
 );
 
 export const bookingApi = {
-  getAvailability: (professionalId: string, date: string) =>
-    api.get(`/professionals/${professionalId}/availability`, { params: { date } }),
+  getAvailability: (professionalId: string, date: string, serviceId: string, clientTz: string) =>
+    api.get(`/professionals/${professionalId}/availability`, {
+      params: { date, serviceId, clientTz },
+    }),
 
-  createBooking: (data: any) =>
-    api.post('/bookings', data),
+  createBooking: (data: {
+    professionalId: string;
+    serviceId: string;
+    startUtc: string;
+    endUtc: string;
+  }) => api.post('/bookings', data),
 
-  getReservation: (reservationId: string) =>
-    api.get(`/bookings/${reservationId}`),
+  getReservation: (reservationId: string) => api.get(`/bookings/${reservationId}`),
+
+  getMyReservations: () => api.get('/bookings'),
 
   cancelReservation: (reservationId: string) =>
     api.post(`/bookings/${reservationId}/cancel`),
 };
 
 export const professionalApi = {
-  list: () =>
-    api.get('/professionals'),
+  list: (limit = 20, offset = 0) =>
+    api.get('/professionals', { params: { limit, offset } }),
 
-  getDetail: (id: string) =>
-    api.get(`/professionals/${id}`),
+  getDetail: (id: string) => api.get(`/professionals/${id}`),
 };
 
 export const userApi = {
-  getProfile: () =>
-    api.get('/users/profile'),
+  getProfile: () => api.get('/users/profile'),
 
-  updateProfile: (data: any) =>
-    api.put('/users/profile', data),
+  updateProfile: (data: any) => api.put('/users/profile', data),
 };
 
 export const authApi = {
-  signup: (email: string, password: string) =>
-    api.post('/auth/signup', { email, password }),
+  signup: (email: string, password: string, fullName: string, timezone: string) =>
+    api.post('/auth/signup', { email, password, fullName, timezone }),
 
   login: (email: string, password: string) =>
     api.post('/auth/login', { email, password }),
 
-  logout: () =>
-    api.post('/auth/logout'),
+  logout: () => api.post('/auth/logout'),
 };
