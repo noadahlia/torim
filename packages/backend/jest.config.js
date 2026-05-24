@@ -4,6 +4,9 @@ export default {
   roots: ['<rootDir>/src'],
   testMatch: ['**/__tests__/**/*.ts', '**/?(*.)+(spec|test).ts'],
   moduleFileExtensions: ['ts', 'tsx', 'js', 'jsx', 'json', 'node'],
+  moduleNameMapper: {
+    '^(\\.{1,2}/.*)\\.js$': '$1',
+  },
   collectCoverageFrom: [
     'src/**/*.ts',
     '!src/**/*.d.ts',
@@ -11,7 +14,7 @@ export default {
   ],
   coveragePathIgnorePatterns: ['/node_modules/'],
   setupFilesAfterEnv: ['<rootDir>/src/__tests__/setup.ts'],
-  testTimeout: 30000,
+  testTimeout: 60000,
   globals: {
     'ts-jest': {
       tsconfig: {

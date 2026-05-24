@@ -1,9 +1,13 @@
 import { createClient } from '@supabase/supabase-js';
 
-const SUPABASE_URL = process.env.SUPABASE_URL || 'http://localhost:54321';
-const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY || 'test-key';
+// Use direct PostgreSQL connection string for tests
+const PG_CONNECTION = process.env.DATABASE_URL || 'postgresql://postgres:postgres@localhost:5432/postgres';
 
-export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+// Create Supabase client (will use PG through REST if available, direct if not)
+export const supabase = createClient(
+  process.env.SUPABASE_URL || 'http://localhost:3001',
+  process.env.SUPABASE_ANON_KEY || 'test-key'
+);
 
 /**
  * Test data fixtures

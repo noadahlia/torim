@@ -8,7 +8,14 @@
       "Bash(npm install *)",
       "Bash(cat)",
       "Read(//tmp/**)",
-      "Bash(docker --version)"
+      "Bash(docker --version)",
+      "Bash(docker-compose up *)",
+      "Bash(docker-compose down *)",
+      "Bash(docker-compose ps *)",
+      "Bash(PGPASSWORD=postgres psql -h localhost -U postgres -d postgres -f \"C:\\\\Projects\\\\torim\\\\packages\\\\backend\\\\supabase\\\\migrations\\\\001_initial.sql\")",
+      "Bash(docker exec *)",
+      "Bash(pnpm test *)",
+      "Bash(npm test *)"
     ]
   }
 }

@@ -6,8 +6,8 @@ const envSchema = z.object({
   API_HOST: z.string().default('0.0.0.0'),
   LOG_LEVEL: z.enum(['debug', 'info', 'warn', 'error']).default('info'),
 
-  SUPABASE_URL: z.string().url(),
-  SUPABASE_ANON_KEY: z.string(),
+  SUPABASE_URL: z.string().url().default('http://localhost:54321'),
+  SUPABASE_ANON_KEY: z.string().default('test-anon-key'),
   SUPABASE_SERVICE_ROLE_KEY: z.string().optional(),
 
   STRIPE_SECRET_KEY: z.string().optional(),
