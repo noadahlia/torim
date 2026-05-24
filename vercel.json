@@ -2,7 +2,7 @@
   "buildCommand": "pnpm turbo run build --filter=backend",
   "installCommand": "pnpm install",
   "outputDirectory": "packages/backend/dist",
-  "framework": "other",
+  "framework": "nodejs",
   "env": {
     "SUPABASE_URL": "@supabase_url",
     "SUPABASE_ANON_KEY": "@supabase_anon_key",
