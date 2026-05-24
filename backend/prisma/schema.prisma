@@ -1,0 +1,349 @@
+// Prisma schema for Torim - Beauty Booking App
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ============================================================================
+// USERS & AUTHENTICATION
+// ============================================================================
+
+model User {
+  id                 String    @id @default(uuid())
+  email              String    @unique
+  password           String
+  firstName          String
+  lastName           String
+  phone              String?
+  role               UserRole  @default(CLIENT)
+  isActive           Boolean   @default(true)
+  isVerified         Boolean   @default(false)
+  timezone           String    @default("Asia/Jerusalem")
+
+  // Relationships
+  clientProfile      ClientProfile?
+  professionalProfile ProfessionalProfile?
+  clientReservations Reservation[] @relation("client")
+  proReservations    Reservation[] @relation("professional")
+  clientReviews      Review[] @relation("reviewClient")
+  proReviews         Review[] @relation("reviewProfessional")
+  trustProfile       ClientTrustProfile?
+  trustEvents        TrustEvent[]
+
+  createdAt          DateTime   @default(now())
+  updatedAt          DateTime   @updatedAt
+
+  @@index([email])
+  @@index([role])
+}
+
+enum UserRole {
+  CLIENT
+  PROFESSIONAL
+  ADMIN
+}
+
+model ClientProfile {
+  id                String   @id @default(uuid())
+  userId            String   @unique
+  user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+}
+
+model ProfessionalProfile {
+  id                     String   @id @default(uuid())
+  userId                 String   @unique
+  user                   User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  bio                    String?
+  profileImageUrl        String?
+  averageRating          Float    @default(0)
+  totalReviews           Int      @default(0)
+
+  // Acceptance Policy (V1: 4 fixed options)
+  acceptancePolicy       AcceptancePolicy @default(OPEN)
+  depositAmount          Int?     // in cents (only for REQUIRE_DEPOSIT_FOR_LOW_TRUST)
+
+  // Cancellation Policy
+  cancellationPolicy     CancellationPolicy @default(STANDARD)
+
+  // Relationships
+  schedules              ProfessionalSchedule[]
+  services               Service[]
+
+  createdAt              DateTime @default(now())
+  updatedAt              DateTime @updatedAt
+
+  @@index([userId])
+}
+
+enum AcceptancePolicy {
+  OPEN
+  FILTER_LOW_TRUST
+  REQUIRE_MANUAL_CONFIRMATION
+  REQUIRE_DEPOSIT_FOR_LOW_TRUST
+}
+
+enum CancellationPolicy {
+  STANDARD
+  FLEXIBLE
+  STRICT
+}
+
+// ============================================================================
+// SCHEDULING
+// ============================================================================
+
+model ProfessionalSchedule {
+  id                String   @id @default(uuid())
+  professionalId    String
+  professional      ProfessionalProfile @relation(fields: [professionalId], references: [id], onDelete: Cascade)
+
+  dayOfWeek         Int      // 0 = Sunday, 6 = Saturday
+  startTime         String   // TIME format "HH:MM:SS"
+  endTime           String   // TIME format "HH:MM:SS"
+  isAvailable       Boolean  @default(true)
+
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  @@unique([professionalId, dayOfWeek])
+  @@index([professionalId])
+}
+
+// ============================================================================
+// SERVICES
+// ============================================================================
+
+model Service {
+  id                         String   @id @default(uuid())
+  professionalId             String
+  professional               ProfessionalProfile @relation(fields: [professionalId], references: [id], onDelete: Cascade)
+
+  name                       String
+  description                String?
+  durationMinutes            Int
+  priceCents                 Int
+  bufferMinutesAfter         Int      @default(15)
+  isActive                   Boolean  @default(true)
+
+  // Relationships
+  reservations               Reservation[]
+
+  createdAt                  DateTime @default(now())
+  updatedAt                  DateTime @updatedAt
+
+  @@index([professionalId])
+  @@index([isActive])
+}
+
+// ============================================================================
+// RESERVATIONS (CRITICAL)
+// ============================================================================
+
+model Reservation {
+  id                         String   @id @default(uuid())
+  clientId                   String
+  client                     User     @relation("client", fields: [clientId], references: [id], onDelete: Cascade)
+
+  professionalId             String
+  professional               User     @relation("professional", fields: [professionalId], references: [id], onDelete: Cascade)
+
+  serviceId                  String
+  service                    Service  @relation(fields: [serviceId], references: [id], onDelete: Restrict)
+
+  // Timing (ALL IN UTC)
+  startTime                  DateTime
+  endTime                    DateTime
+
+  // Status
+  status                     ReservationStatus @default(CONFIRMED)
+
+  // Service snapshot (immutable)
+  serviceNameSnapshot        String
+  serviceDurationMinutesSnapshot Int
+  servicePriceCentsSnapshot  Int
+
+  // Notes
+  clientNotes                String?
+  proNotes                   String?
+
+  // Relationships
+  payment                    Payment?
+  trustEvent                 TrustEvent?
+  review                     Review?
+  auditLogs                  AuditLog[]
+
+  // Audit
+  confirmedAt                DateTime?
+  cancelledAt                DateTime?
+  completedAt                DateTime?
+
+  createdAt                  DateTime @default(now())
+  updatedAt                  DateTime @updatedAt
+
+  @@unique([professionalId, startTime, endTime], name: "no_overlapping_reservations")
+  @@index([clientId])
+  @@index([professionalId])
+  @@index([status])
+  @@index([startTime])
+}
+
+enum ReservationStatus {
+  CONFIRMED
+  AWAITING_CONFIRMATION
+  AWAITING_DEPOSIT
+  COMPLETED
+  NO_SHOW
+  CANCELLED_BY_CLIENT
+  CANCELLED_BY_PROFESSIONAL
+  DECLINED_BY_PROFESSIONAL
+}
+
+// ============================================================================
+// PAYMENTS
+// ============================================================================
+
+model Payment {
+  id                      String   @id @default(uuid())
+  reservationId           String   @unique
+  reservation             Reservation @relation(fields: [reservationId], references: [id], onDelete: Cascade)
+
+  stripePaymentIntentId   String?
+  stripePriceId           String?
+
+  amountCents             Int
+  currency                String   @default("ILS")
+  status                  PaymentStatus @default(PENDING)
+
+  succeededAt             DateTime?
+  failedAt                DateTime?
+
+  createdAt               DateTime @default(now())
+  updatedAt               DateTime @updatedAt
+
+  @@index([reservationId])
+  @@index([stripePaymentIntentId])
+}
+
+enum PaymentStatus {
+  PENDING
+  SUCCEEDED
+  FAILED
+  REFUNDED
+}
+
+// ============================================================================
+// TRUST SYSTEM (V1.1+)
+// ============================================================================
+
+model ClientTrustProfile {
+  id                   String   @id @default(uuid())
+  clientId             String   @unique
+  client               User     @relation(fields: [clientId], references: [id], onDelete: Cascade)
+
+  trustScore           Int      @default(50)
+  lastUpdatedAt        DateTime @updatedAt
+
+  totalBookings        Int      @default(0)
+  completedBookings    Int      @default(0)
+  noShows              Int      @default(0)
+  lateCancellations    Int      @default(0)
+
+  isSuspended          Boolean  @default(false)
+  suspensionReason     String?
+
+  trustEvents          TrustEvent[]
+
+  createdAt            DateTime @default(now())
+}
+
+model TrustEvent {
+  id                   String   @id @default(uuid())
+  clientId             String
+  client               User     @relation(fields: [clientId], references: [id], onDelete: Cascade)
+
+  trustProfileId       String?
+  trustProfile         ClientTrustProfile? @relation(fields: [trustProfileId], references: [id], onDelete: Cascade)
+
+  reservationId        String?  @unique
+  reservation          Reservation? @relation(fields: [reservationId], references: [id], onDelete: SetNull)
+
+  eventType            TrustEventType
+  description          String?
+  scoreDelta           Int
+
+  createdAt            DateTime @default(now())
+
+  @@index([clientId])
+  @@index([eventType])
+}
+
+enum TrustEventType {
+  BOOKING_CONFIRMED
+  BOOKING_COMPLETED
+  NO_SHOW
+  CANCELLATION_0_24H
+  CANCELLATION_24H_PLUS
+  REVIEW_LEFT
+  PROFESSIONAL_REPORTED
+}
+
+// ============================================================================
+// REVIEWS
+// ============================================================================
+
+model Review {
+  id                   String   @id @default(uuid())
+  reservationId        String   @unique
+  reservation          Reservation @relation(fields: [reservationId], references: [id], onDelete: Cascade)
+
+  clientId             String
+  client               User     @relation("reviewClient", fields: [clientId], references: [id], onDelete: Cascade)
+
+  professionalId       String
+  professional         User     @relation("reviewProfessional", fields: [professionalId], references: [id], onDelete: Cascade)
+
+  rating               Int
+  comment              String?
+
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+
+  @@index([professionalId])
+  @@index([clientId])
+}
+
+// ============================================================================
+// AUDIT LOG
+// ============================================================================
+
+model AuditLog {
+  id                   String   @id @default(uuid())
+  entityType           String
+  entityId             String
+  action               String
+
+  reservationId        String?
+  reservation          Reservation? @relation(fields: [reservationId], references: [id], onDelete: SetNull)
+
+  userId               String?
+
+  changesBefore        Json?
+  changesAfter         Json?
+  description          String?
+
+  createdAt            DateTime @default(now())
+
+  @@index([entityId])
+  @@index([entityType])
+  @@index([reservationId])
+  @@index([userId])
+}

@@ -1,0 +1,14 @@
+{
+  "buildCommand": "pnpm turbo run build --filter=backend",
+  "installCommand": "pnpm install",
+  "outputDirectory": "packages/backend/dist",
+  "framework": "other",
+  "env": [
+    "SUPABASE_URL",
+    "SUPABASE_ANON_KEY",
+    "STRIPE_SECRET_KEY",
+    "MAILGUN_API_KEY",
+    "MAILGUN_DOMAIN"
+  ],
+  "envPrefix": "VERCEL_"
+}
